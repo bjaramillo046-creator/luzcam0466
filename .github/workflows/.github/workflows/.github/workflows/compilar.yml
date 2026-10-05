@@ -1,0 +1,75 @@
+name: Compilar LuzCam
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extraer el proyecto original
+        run: unzip -q LuzCam_Windows_Android_Prototipo.zip -d proyecto
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Preparar Android
+        run: sdkmanager "platforms;android-35" "build-tools;34.0.0"
+
+      - name: Compilar APK y revisar lint
+        working-directory: proyecto/LuzCam/android
+        run: gradle --no-daemon assembleDebug lintDebug
+
+      - name: Guardar la app Android
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuzCam-Android-prototipo
+          path: proyecto/LuzCam/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extraer el proyecto original
+        run: Expand-Archive -LiteralPath 'LuzCam_Windows_Android_Prototipo.zip' -DestinationPath proyecto
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: x64
+
+      - name: Instalar dependencias
+        run: python -m pip install -r proyecto/LuzCam/windows/requirements.txt
+
+      - name: Compilar EXE
+        working-directory: proyecto/LuzCam/windows
+        run: python -m PyInstaller --noconfirm --clean --onedir --windowed --name LuzCam --collect-all pyvirtualcam app.py
+
+      - name: Guardar la app Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuzCam-Windows-prototipo
+          path: |
+            proyecto/LuzCam/windows/dist/LuzCam/
+            proyecto/LuzCam/LICENSE
+            proyecto/LuzCam/README.md
+            proyecto/LuzCam/windows/*.py
+            proyecto/LuzCam/windows/requirements.txt
+          if-no-files-found: error
