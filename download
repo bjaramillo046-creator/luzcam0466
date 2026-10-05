@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+*.spec
+dist/
+build/
+.gradle/
+local.properties
+*.jks
+*.keystore
